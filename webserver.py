@@ -5,4 +5,4 @@ app=Flask(__name__)
 def mainn():
     return render_template('index.html')
     #return "welcome"
-app.run(debug=True,host="your ip ",port="80")
+app.run(debug=True,host="your ip",port="80")
