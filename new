@@ -1,0 +1,69 @@
+import threading
+import asyncio
+from functools import partial
+import datetime
+
+import json
+import logging
+import websockets
+
+connected=set()
+lock=threading.Lock()
+#https://eightnoteight.wordpress.com/2016/09/24/multiple-event-loops-in-different-threads/
+async def register(websocket):
+    global connected
+    lock.acquire()
+    connected.add(websocket)
+    lock.release()
+async def counter(websocket, path):
+    # register(websocket) sends user_event() to websocket
+    print("new connection")
+    await register(websocket)
+
+    #for i in connected:
+    #    print(i.remote_address)
+
+def main_loop():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(websockets.serve(counter, 'localhost', 6789))
+    print("server started")
+    loop.run_forever()
+
+async def send_data():
+    global connected
+    while True:
+        if connected:
+            lock.acquire()
+            print("locked")
+            for i in connected:
+                #print(dir(i))
+                await i.send('vijay')#str(datetime.datetime.now()))
+            lock.release()
+            print("unlocked")
+                
+
+"""def multi_event_loops():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    
+    loop.run_until_complete(asyncio.gather(t1, t2))"""
+
+def creepy():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    #t1 = send_data()
+    print("send loop entered")
+    loop.run_until_complete(send_data())
+    print("send loop started")
+    loop.run_forever()
+
+def main():
+    threading.Thread(target=creepy).start()
+    threading.Thread(target=main_loop).start()
+    #threading.Thread(target=multi_event_loops).start()
+    #for _ in range(3):
+    #    threading.Thread(target=multi_event_loops).start()
+
+
+main()
