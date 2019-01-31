@@ -67,3 +67,91 @@ def main():
 
 
 main()
+###################################
+
+import threading
+import asyncio
+from functools import partial
+import datetime
+
+import json
+import logging
+import websockets
+
+connected = set()
+lock=threading.Lock()
+
+async def send_data_to_all(ws,data):
+    await ws.send(data)
+
+async def register(wss):
+    lock.acquire()
+    connected.add(wss)
+    lock.release()
+    
+async def unregister(ws):
+    lock.acquire()
+    connected.remove(ws)
+    lock.release()
+    
+    
+#@asyncio.coroutine
+async def counter(ws,pos):
+    await register(ws)
+    print("new connection added")
+    try:
+        async for m in ws:
+            user_data=json.loads(m)
+            print(m,user_data)
+            continue
+    except Exception as e:
+        print(e)
+    
+
+@asyncio.coroutine
+def send_data():
+    while True:
+        time_data=str(datetime.datetime.now())
+        task=asyncio.gather(*[send_data_to_all(i,time_data) for i in connected])
+        #for i in connected:
+        #    yield from i.send(time_data)
+        yield from asyncio.sleep(.1)
+        
+loop = asyncio.new_event_loop()
+asyncio.set_event_loop(loop)
+loop.run_until_complete(websockets.serve(counter, 'localhost', 6789))
+asyncio.async(send_data())
+print("server started")
+loop.run_forever()
+#####
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>WebSocket demo</title>
+        <script>
+            
+        
+            function test(){
+var websocket = new WebSocket("ws://127.0.0.1:6789/");
+            websocket.onmessage = function (event) {
+                
+                //data = JSON.parse(event.data);
+                //alert(event.data);
+                document.getElementById('demo').innerHTML=event.data;
+            };
+
+		websocket.onopen=function(e){alert("connection made");}
+		websocket.onerror=function(e){alert(e);}
+		websocket.onclose=function(e){alert("connection closed");setTimeout(test,5000)}
+	}
+	function send_data_to_server(){websocket.send(document.getElementById('user_input').innerHTML);}
+	
+        </script>
+</head>
+    <body onload="test();">
+    
+    <p id='demo'></p></br>
+<input type="text" id="user_input" />
+<button onclick="send_data_to_server();">send</button>
+    </body>
+</html>
