@@ -372,3 +372,104 @@ window.addEventListener("beforeunload", function (e) {
 <button onclick="send_data_to_server();">send</button>
     </body>
 </html>
+-------------------------------------------------------------
+import socket
+import sys
+#from thread import *
+import threading
+
+HOST = ''	# Symbolic name meaning all available interfaces
+PORT = 8888	# Arbitrary non-privileged port
+
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+print ('Socket created')
+
+#Bind socket to local host and port
+try:
+	s.bind((HOST, PORT))
+except socket.error as msg:
+	print ('Bind failed. Error Code : ' + str(msg[0]) + ' Message ' + msg[1])
+	sys.exit()
+	
+print ('Socket bind complete')
+
+#Start listening on socket
+s.listen(10)
+print ('Socket now listening')
+
+#Function for handling connections. This will be used to create threads
+def clientthread(conn):
+	#Sending message to connected client
+	#conn.send('Welcome to the server. Type something and hit enter\n') #send only takes string
+	
+	#infinite loop so that function do not terminate and thread do not end.
+	while True:
+		
+		#Receiving from client
+		#data = conn.recv(1024)
+		#reply = 'OK...' + data
+		#if not data: 
+		#	break
+	
+		conn.sendall('hi')
+	
+	#came out of loop
+	conn.close()
+
+#now keep talking with the client
+while 1:
+    #wait to accept a connection - blocking call
+	conn, addr = s.accept()
+	print ('Connected with ' + addr[0] + ':' + str(addr[1]))
+	
+	#start new thread takes 1st argument as a function name to be run, second is the tuple of arguments to the function.
+	#start_new_thread(clientthread ,(conn,))
+	threading.Thread(target=clientthread,args=(conn,)).start()
+
+s.close()
+-----
+<html>
+<body>
+
+<?php 
+class worker extends Thread{
+
+public function __construct($soc){
+$this->soc=$soc;
+}
+
+public function run(){
+
+while ($out = socket_read($soc, 2048)) {
+    echo $out;
+}
+
+	}
+}
+
+$service_port = getservbyname('www', 'tcp');
+$address = gethostbyname('www.example.com');
+$socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
+
+if ($socket === false) {
+    echo "socket_create() failed: reason: " . socket_strerror(socket_last_error()) . "\n";
+} else {
+    echo "OK.\n";
+}
+
+$result = socket_connect($socket, $address, $service_port);
+if ($result === false) {
+    echo "socket_connect() failed.\nReason: ($result) " . socket_strerror(socket_last_error($socket)) . "\n";
+} else {
+    echo "OK.\n";
+}
+
+
+$t1=new worker($socket);
+$t1->start();
+
+
+?>
+
+</body>
+</html>
